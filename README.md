@@ -2,10 +2,10 @@
 Build SQL by YAML configure, Separating the code and sql
 
 # Features
-Base on sqlx
-Support filter pipeline
-Support custom tokens
-Fast build a service for sql base analysis
+- Base on sqlx
+- Support filter pipeline
+- Support custom tokens
+- Fast build a service for sql base analysis
 
 # Examples
 
@@ -71,7 +71,7 @@ err = sb.RegisterToken("attrs", func(params []TokenParam) TokenReplacer {
 
 err = sb.AddFilters([]Filter{
     {Val: "barry", Op: Contains, Attr: "users.name"},
-		{Val: []int{1, 2, 4, 8}, Op: In, Attr: "order_status"},
+    {Val: []int{1, 2, 4, 8}, Op: In, Attr: "order_status"},
 }, AND)
 
 q, args, err := sb.Rebind("list")
