@@ -1,4 +1,4 @@
-module github.com/user/sqlcomposer
+module github.com/wangxb07/sqlcomposer
 
 go 1.13
 
