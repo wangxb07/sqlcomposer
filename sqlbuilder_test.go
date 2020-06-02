@@ -98,7 +98,7 @@ func (atr attrsFieldsTokenReplacer) TokenReplace(ctx map[string]interface{}) str
 }
 
 func TestSqlBuilder_RegisterToken(t *testing.T) {
-	var sqlComposition = `
+	var sqlWithToken = `
 info:
   name: example
   version: 1.0.0
@@ -131,10 +131,30 @@ composition:
     list: "SELECT %fields.base, %fields.statistic, %attrs_fields FROM users LEFT JOIN orders ON orders.uid = users.uid LEFT JOIN fty_product ON orders.product_sid = fty_product.sid %attrs %where GROUP BY users.uid %limit"
     total: "SELECT count(users.uid) FROM users LEFT JOIN orders ON orders.uid = users.uid LEFT JOIN fty_product ON orders.product_sid = fty_product.sid %attrs %where GROUP BY users.uid"`
 
+	var sqlNotWithToken = `
+info:
+  name: example
+  version: 1.0.0
+composition:
+  fields:
+    base:
+      - name: name
+        expr: users.name
+      - name: age
+        expr: users.age
+    statistic:
+      - name: consume_times
+        expr: COUNT(orders.id)
+      - name: consume_total
+        expr: SUM(orders.total_amount)
+  subject: 
+    list: "SELECT %fields.base, %fields.statistic FROM users LEFT JOIN orders ON orders.uid = users.uid LEFT JOIN fty_product ON orders.product_sid = fty_product.sid %where GROUP BY users.uid %limit"
+    total: "SELECT count(users.uid) FROM users LEFT JOIN orders ON orders.uid = users.uid LEFT JOIN fty_product ON orders.product_sid = fty_product.sid %where GROUP BY users.uid"`
+
 	RunWithSchema(defaultSchema, t, func(db *sqlx.DB, t *testing.T) {
 		loadDefaultFixture(db, t)
 
-		sb, err := NewSqlBuilder(db, []byte(sqlComposition))
+		sb, err := NewSqlBuilder(db, []byte(sqlWithToken))
 
 		keys := make([]string, len(sb.Doc.Composition.Tokens))
 
@@ -162,7 +182,7 @@ composition:
 
 		assert.Error(t, err)
 
-		err = sb.RegisterToken("attrs", func(params []TokenParam) TokenReplacer {
+		sb.RegisterToken("attrs", func(params []TokenParam) TokenReplacer {
 			attrs := map[string]string{}
 			for _, p := range params {
 				attrs[p.Name] = p.Value
@@ -174,11 +194,7 @@ composition:
 			}
 		})
 
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		err = sb.RegisterToken("attrs_fields", func(params []TokenParam) TokenReplacer {
+		sb.RegisterToken("attrs_fields", func(params []TokenParam) TokenReplacer {
 			attrs := map[string]string{}
 			for _, p := range params {
 				attrs[p.Name] = p.Value
@@ -188,10 +204,6 @@ composition:
 				Attrs: attrs,
 			}
 		})
-
-		if err != nil {
-			t.Fatal(err)
-		}
 
 		q, _, err = sb.Rebind("list")
 
@@ -222,6 +234,41 @@ composition:
 			"AND prod_material.obj_sid = fty_product.sid LEFT JOIN fty_obj_attr AS prod_weight "+
 			"ON prod_weight.attr_sid = 'af37d15ade63f26ee566fcd9692c63d4' AND prod_weight.obj_sid = fty_product.sid "+
 			"WHERE (users.name LIKE ?) GROUP BY users.uid", q)
+
+
+		// register token but not in compose
+		sb, err = NewSqlBuilder(db, []byte(sqlNotWithToken))
+
+		sb.RegisterToken("attrs", func(params []TokenParam) TokenReplacer {
+			attrs := map[string]string{}
+			for _, p := range params {
+				attrs[p.Name] = p.Value
+			}
+
+			return &attrsTokenReplacer{
+				Attrs: attrs,
+				DB:    db,
+			}
+		})
+
+		sb.RegisterToken("attrs_fields", func(params []TokenParam) TokenReplacer {
+			attrs := map[string]string{}
+			for _, p := range params {
+				attrs[p.Name] = p.Value
+			}
+
+			return &attrsFieldsTokenReplacer{
+				Attrs: attrs,
+			}
+		})
+
+		q, _, err = sb.Rebind("list")
+
+		assert.Equal(t, "SELECT users.name AS name, users.age AS age, COUNT(orders.id) AS consume_times, "+
+			"SUM(orders.total_amount) AS consume_total "+
+			"FROM users LEFT JOIN orders ON orders.uid = users.uid "+
+			"LEFT JOIN fty_product ON orders.product_sid = fty_product.sid  "+
+			"GROUP BY users.uid LIMIT 0, 10", q)
 	})
 }
 

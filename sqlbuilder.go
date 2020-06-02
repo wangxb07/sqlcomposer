@@ -116,12 +116,10 @@ func NewSqlBuilder(db *sqlx.DB, yamlFile []byte) (*SqlBuilder, error) {
 	}, nil
 }
 
-func (sc *SqlBuilder) RegisterToken(name string, gen func(params []TokenParam) TokenReplacer) error {
+func (sc *SqlBuilder) RegisterToken(name string, gen func(params []TokenParam) TokenReplacer) {
 	if td, ok := sc.Doc.Composition.Tokens[name]; ok {
 		sc.tokens[name] = gen(td.Params)
-		return nil
 	}
-	return fmt.Errorf("token %s not defined", name)
 }
 
 func (sc *SqlBuilder) RegisterPipelineType(t string) error {
