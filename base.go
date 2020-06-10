@@ -247,6 +247,27 @@ func betweenParamsProcess(v interface{}, attr string, params map[string]interfac
 		params[attr+"_2"] = s.Index(1).String()
 	}
 
+	if k == reflect.Interface {
+		params[attr+"_1"] = s.Index(0).Elem().String()
+		params[attr+"_2"] = s.Index(1).Elem().String()
+
+		if params[attr+"_1"] == "<int Value>" {
+			params[attr+"_1"] = s.Index(0).Elem().Int()
+		}
+
+		if params[attr+"_2"] == "<int Value>" {
+			params[attr+"_2"] = s.Index(1).Elem().Int()
+		}
+
+		if params[attr+"_1"] == "<float64 Value>" {
+			params[attr+"_1"] = s.Index(0).Elem().Float()
+		}
+
+		if params[attr+"_2"] == "<float64 Value>" {
+			params[attr+"_2"] = s.Index(1).Elem().Float()
+		}
+	}
+
 	return nil
 }
 

@@ -272,6 +272,61 @@ func TestBuildWhereAnd(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"cust_name": "%中文%",
 	}, s5.Arg)
+
+	s6, err := WhereAnd(&[]Filter{
+		{Val: []interface{}{"2020-06-01", "2020-06-20"}, Op: Between, Attr: "lang"},
+	})
+
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s6.Clause)
+	assert.Equal(t, map[string]interface{}{
+		"lang_1": "2020-06-01",
+		"lang_2": "2020-06-20",
+	}, s6.Arg)
+
+	s7, err := WhereAnd(&[]Filter{
+		{Val: []interface{}{128, 200}, Op: Between, Attr: "lang"},
+	})
+
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s7.Clause)
+	assert.Equal(t, map[string]interface{}{
+		"lang_1": int64(128),
+		"lang_2": int64(200),
+	}, s7.Arg)
+
+	s8, err := WhereAnd(&[]Filter{
+		{Val: []interface{}{128.0, 200.1}, Op: Between, Attr: "lang"},
+	})
+
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s8.Clause)
+	assert.Equal(t, map[string]interface{}{
+		"lang_1": float64(128.0),
+		"lang_2": float64(200.1),
+	}, s8.Arg)
+
+	s9, err := WhereAnd(&[]Filter{
+		{Val: []interface{}{128, 200.1}, Op: Between, Attr: "height"},
+		{Val: []interface{}{"1028", "2000"}, Op: Between, Attr: "lang"},
+	})
+
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Equal(t, "height > :height_1 AND height < :height_2 AND lang > :lang_1 AND lang < :lang_2", s9.Clause)
+	assert.Equal(t, map[string]interface{}{
+		"height_1": int64(128),
+		"height_2": float64(200.1),
+		"lang_1": "1028",
+		"lang_2": "2000",
+	}, s9.Arg)
 }
 
 func TestBuildWhereOr(t *testing.T) {
