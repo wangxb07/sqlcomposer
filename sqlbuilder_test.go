@@ -445,3 +445,73 @@ composition:
 			"WHERE ((product_spec LIKE ? OR product_unit_weight LIKE ? OR product_material LIKE ?) AND (users.name LIKE ? AND order_status IN(?, ?, ?, ?))) GROUP BY users.uid LIMIT 0, 10", q)
 	})
 }
+
+func TestSqlBuilder_OrderBy(t *testing.T) {
+	var sqlComposition = `
+info:
+  name: example
+  version: 1.0.0
+composition:
+  fields:
+    base:
+      - name: name
+        expr: users.name
+        type: string
+      - name: age
+        expr: users.age
+    statistic:
+      - name: consume_times
+        expr: COUNT(orders.id)
+      - name: consume_total
+        expr: SUM(orders.total_amount)
+  subject: 
+    list: "SELECT %fields.base, %fields.statistic FROM users LEFT JOIN orders ON orders.uid = users.uid %where GROUP BY users.uid %order_by %limit"
+    total: "SELECT count(users.uid) FROM users LEFT JOIN order ON order.uid = users.uid %where GROUP BY users.uid"`
+
+	RunWithSchema(defaultSchema, t, func(db *sqlx.DB, t *testing.T) {
+		loadDefaultFixture(db, t)
+
+		sb, err := NewSqlBuilder(db, []byte(sqlComposition))
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		q, a, err := sb.OrderBy(&OrderBy{
+			{Name: "age", Direction: ASC},
+		}).Limit(0, 10).Rebind("list")
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		assert.Equal(t, "SELECT users.name AS name, users.age AS age, COUNT(orders.id) AS consume_times, "+
+			"SUM(orders.total_amount) AS consume_total FROM users LEFT JOIN orders ON orders.uid = users.uid"+
+			"  GROUP BY users.uid ORDER BY age ASC LIMIT 0, 10", q)
+
+		rows, err := db.Queryx(q, a...)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		assert.Equal(t, true, rows.Next())
+		row := make(map[string]interface{})
+		err = rows.MapScan(row)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		sb.RowConvert(&row)
+
+		assert.Equal(t, "Scott", row["name"])
+		assert.Equal(t, int64(20), row["age"])
+		assert.Equal(t, int64(2), row["consume_times"])
+		assert.Equal(t, 192.89999999999998, row["consume_total"])
+	})
+}

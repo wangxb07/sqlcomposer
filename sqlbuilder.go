@@ -83,6 +83,7 @@ type SqlBuilder struct {
 	DB         *sqlx.DB
 	Doc        *SqlApiDoc
 	Conditions *ConditionStmt
+	orderBy    *OrderBy
 	limit      *SqlLimit
 	tokens     map[string]interface{}
 	pipelines  map[string]ExpanderGenerator
@@ -216,10 +217,16 @@ func (sc *SqlBuilder) Limit(offset int64, size int64) *SqlBuilder {
 	return sc
 }
 
+func (sc *SqlBuilder) OrderBy(ob *OrderBy) *SqlBuilder {
+	sc.orderBy = ob
+	return sc
+}
+
 func (sc *SqlBuilder) compose(s string) (string, error) {
 	ctx := map[string]interface{}{
-		"where": *sc.Conditions,
-		"limit": *sc.limit,
+		"where":    *sc.Conditions,
+		"limit":    *sc.limit,
+		"order_by": *sc.orderBy,
 	}
 
 	// fields context process

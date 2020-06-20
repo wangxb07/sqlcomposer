@@ -10,6 +10,7 @@ import (
 
 type Operator string
 type LogicOperator string
+type Direction string
 
 const (
 	Equal          Operator = "="
@@ -34,6 +35,11 @@ const (
 	OR                = "OR"
 )
 
+const (
+	ASC  Direction = "ASC"
+	DESC           = "DESC"
+)
+
 type Filter struct {
 	Val  interface{}
 	Op   Operator
@@ -43,34 +49,6 @@ type Filter struct {
 type FilterGroup struct {
 	LogicOp LogicOperator
 	Filters []*Filter
-}
-
-type ConditionStmt struct {
-	Clause string
-	Arg    map[string]interface{}
-}
-
-func (fs ConditionStmt) IsEmpty() bool {
-	return fs.Clause == ""
-}
-
-// Implement token replacer
-func (fs ConditionStmt) TokenReplace(ctx map[string]interface{}) string {
-	if !fs.IsEmpty() {
-		return fmt.Sprintf("WHERE %s", fs.Clause)
-	}
-
-	return ""
-}
-
-type SqlLimit struct {
-	Offset int64
-	Size   int64
-}
-
-// Implement token replacer
-func (limit SqlLimit) TokenReplace(ctx map[string]interface{}) string {
-	return fmt.Sprintf("LIMIT %d, %d", limit.Offset, limit.Size)
 }
 
 //
