@@ -258,6 +258,10 @@ func TestBuildWhereAnd(t *testing.T) {
 		"nickname_1": "%bin",
 		"firstName":  "%barry",
 	}, s4.Arg)
+	assert.Equal(t, "name LIKE :name", s4.ClauseSlice["name"])
+	assert.Equal(t, "nickname LIKE :nickname", s4.ClauseSlice["nickname"])
+	assert.Equal(t, "nickname LIKE :nickname_1", s4.ClauseSlice["nickname_1"])
+	assert.Equal(t, "firstName LIKE :firstName", s4.ClauseSlice["firstName"])
 
 	f5 := &[]Filter{
 		{Val: "中文", Op: Contains, Attr: "cust_name"},
@@ -327,6 +331,8 @@ func TestBuildWhereAnd(t *testing.T) {
 		"lang_1": "1028",
 		"lang_2": "2000",
 	}, s9.Arg)
+	assert.Equal(t, "height > :height_1 AND height < :height_2", s9.ClauseSlice["height"])
+	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s9.ClauseSlice["lang"])
 }
 
 func TestBuildWhereOr(t *testing.T) {
@@ -469,4 +475,50 @@ func Test_generateNewAttrName(t *testing.T) {
 	args[newName] = "3"
 	newName = generateNewAttrName("order_type", args)
 	assert.Equal(t, "order_type_2", newName)
+}
+
+func TestCollectTokenPlaceholder(t *testing.T) {
+	var (
+		tks [][]string
+		sc string
+	)
+
+	sc = "SELECT * FROM tb %foo %where %limit"
+	tks = CollectTokenPlaceholder(sc)
+
+	assert.Equal(t, "%foo", tks[0][0])
+	assert.Equal(t, "%where", tks[1][0])
+	assert.Equal(t, "%limit", tks[2][0])
+
+	// with suffix
+	sc = "SELECT %fields.base FROM tb %where %limit"
+	tks = CollectTokenPlaceholder(sc)
+
+	assert.Equal(t, "%fields.base", tks[0][0])
+	assert.Equal(t, "fields.base", tks[0][1])
+	assert.Equal(t, "", tks[1][2])
+
+	// with params
+	sc = "SELECT %fields.base FROM tb %where{name,age} %limit"
+	tks = CollectTokenPlaceholder(sc)
+	assert.Equal(t, "%where{name,age}", tks[1][0])
+	assert.Equal(t, "{name,age}", tks[1][2])
+
+	sc = "SELECT %fields.base FROM tb %where{!name,age} %limit"
+	tks = CollectTokenPlaceholder(sc)
+	assert.Equal(t, "%where{!name,age}", tks[1][0])
+	assert.Equal(t, "{!name,age}", tks[1][2])
+
+
+	sc = "SELECT %fields.base FROM tb %where{*} %limit"
+	tks = CollectTokenPlaceholder(sc)
+	assert.Equal(t, "%where{*}", tks[1][0])
+	assert.Equal(t, "{*}", tks[1][2])
+
+	sc = "SELECT %fields.base FROM tb %where{!name,age} %having{name,age} %limit"
+	tks = CollectTokenPlaceholder(sc)
+	assert.Equal(t, "%where{!name,age}", tks[1][0])
+	assert.Equal(t, "%having{name,age}", tks[2][0])
+	assert.Equal(t, "{!name,age}", tks[1][2])
+	assert.Equal(t, "{name,age}", tks[2][2])
 }

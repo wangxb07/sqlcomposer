@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"reflect"
-	"regexp"
 	"strings"
 )
 
@@ -40,6 +39,11 @@ const (
 	DESC           = "DESC"
 )
 
+type Sort struct {
+	Name      string
+	Direction Direction
+}
+
 type Filter struct {
 	Val  interface{}
 	Op   Operator
@@ -63,6 +67,7 @@ func Conditions(f *[]Filter, op LogicOperator) (stmt ConditionStmt, err error) {
 
 	conditions = []string{}
 	stmt.Arg = map[string]interface{}{}
+	stmt.ClauseSlice = map[string]string{}
 
 	for _, value := range *f {
 		var str strings.Builder
@@ -133,6 +138,8 @@ func Conditions(f *[]Filter, op LogicOperator) (stmt ConditionStmt, err error) {
 		}
 
 		conditions = append(conditions, str.String())
+		// put string to clause slice
+		stmt.ClauseSlice[paramsAttr] = str.String()
 	}
 
 	stmt.Clause = strings.Join(conditions, fmt.Sprintf(" %s ", op))
@@ -319,48 +326,4 @@ func FilterToWhereAnd(filters *[]Filter, pipelines ...FilterPipeline) (stmt Cond
 	}
 
 	return stmt, err
-}
-
-//
-// Token replace
-//
-func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
-	// collect all token placeholders on the string
-	tps := CollectTokenPlaceholder(s)
-
-	// no token need replace
-	if len(tps) == 0 {
-		return s, nil
-	}
-
-	rs = s
-	for _, placeholder := range tps {
-		if tr, ok := ctx[placeholder[1]]; ok {
-			// tr is string
-			if rt := reflect.TypeOf(tr); rt.Kind() == reflect.String {
-				rs = strings.Replace(rs, placeholder[0], tr.(string), 1)
-			} else {
-				replacer, ok := tr.(TokenReplacer)
-
-				if !ok {
-					return rs, fmt.Errorf("placeholder %s in context must implemented TokenReplacer", placeholder[0])
-				}
-
-				rs = strings.Replace(rs, placeholder[0], replacer.TokenReplace(ctx), 1)
-			}
-		} else {
-			return rs, fmt.Errorf("placeholder %s not definition in context", placeholder[1])
-		}
-	}
-
-	return replaceSpaceString(rs), err
-}
-
-func replaceSpaceString(s string) string {
-	return strings.Replace(strings.Replace(s, "\n", " ", -1), "\t", " ", -1)
-}
-
-func CollectTokenPlaceholder(s string) (tps [][]string) {
-	r := regexp.MustCompile(`%([\w.]+)`)
-	return r.FindAllStringSubmatch(s, -1)
 }

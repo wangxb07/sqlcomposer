@@ -6,25 +6,9 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"regexp"
-	"strings"
 )
 
-type TokenReplacer interface {
-	TokenReplace(ctx map[string]interface{}) string
-}
-
 type SqlCompositionFields map[string]SqlCompositionFieldGroup
-
-type SqlCompositionFieldGroup []SqlCompositionField
-
-func (group SqlCompositionFieldGroup) TokenReplace(ctx map[string]interface{}) string {
-	var res []string
-	for _, field := range group {
-		res = append(res, fmt.Sprintf("%s AS %s", field.Expr, field.Name))
-	}
-
-	return strings.Join(res, ", ")
-}
 
 type SqlCompositionField struct {
 	Name string `yaml:"name"`
