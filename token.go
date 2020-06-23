@@ -13,7 +13,7 @@ type TokenReplacer interface {
 }
 
 type ParameterizedTokenReplacer interface {
-	TokenReplaceWithParams(params string) string
+	TokenReplaceWithParams(params string, token string) string
 }
 
 //
@@ -61,7 +61,7 @@ func (fs ConditionStmt) TokenReplace(ctx map[string]interface{}) string {
 }
 
 // Implement token replacer
-func (fs ConditionStmt) TokenReplaceWithParams(params string) string {
+func (fs ConditionStmt) TokenReplaceWithParams(params string, token string) string {
 	if !fs.IsEmpty() {
 		include, fields := processConditionsParameters(params)
 
@@ -86,8 +86,18 @@ func (fs ConditionStmt) TokenReplaceWithParams(params string) string {
 				}
 			}
 		}
-		// todo consider more about Operator
-		return fmt.Sprintf("WHERE %s", strings.Join(clauses, " AND "))
+
+		if len(clauses) == 0 {
+			return ""
+		}
+
+		if token == "where" {
+			return fmt.Sprintf("WHERE %s", strings.Join(clauses, " AND "))
+		}
+
+		if token == "having" {
+			return fmt.Sprintf("HAVING %s", strings.Join(clauses, " AND "))
+		}
 	}
 
 	return ""
@@ -170,7 +180,7 @@ func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
 					}
 
 					params := placeholder[2][1 : len(placeholder[2])-1]
-					rs = strings.Replace(rs, placeholder[0], replacer.TokenReplaceWithParams(params), 1)
+					rs = strings.Replace(rs, placeholder[0], replacer.TokenReplaceWithParams(params, placeholder[1]), 1)
 				}
 			}
 		} else {
@@ -182,7 +192,7 @@ func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
 }
 
 func replaceSpaceString(s string) string {
-	return strings.Replace(strings.Replace(s, "\n", " ", -1), "\t", " ", -1)
+	return strings.Trim(strings.Replace(strings.Replace(s, "\n", " ", -1), "\t", " ", -1), " ")
 }
 
 //CollectTokenPlaceholder

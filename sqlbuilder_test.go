@@ -26,7 +26,7 @@ composition:
       - name: consume_total
         expr: SUM(orders.total_amount)
   subject: 
-    list: "SELECT %fields.base, %fields.statistic FROM users LEFT JOIN orders ON orders.uid = users.uid %where GROUP BY users.uid %limit"
+    list: "SELECT %fields.base, %fields.statistic FROM users LEFT JOIN orders ON orders.uid = users.uid %where{!consume_total} GROUP BY users.uid %having{consume_total} %limit"
     total: "SELECT count(users.uid) FROM users LEFT JOIN order ON order.uid = users.uid %where GROUP BY users.uid"`
 
 	RunWithSchema(defaultSchema, t, func(db *sqlx.DB, t *testing.T) {
@@ -59,7 +59,7 @@ composition:
 
 		assert.Equal(t, "SELECT users.name AS name, users.age AS age, COUNT(orders.id) AS consume_times, "+
 			"SUM(orders.total_amount) AS consume_total FROM users LEFT JOIN orders ON orders.uid = users.uid "+
-			"WHERE (users.name LIKE ?) GROUP BY users.uid LIMIT 0, 10", q)
+			"WHERE users.name LIKE ? GROUP BY users.uid  LIMIT 0, 10", q)
 
 		rows, err := db.Queryx(q, a...)
 
@@ -77,6 +77,16 @@ composition:
 		assert.Equal(t, int64(24), row["age"])
 		assert.Equal(t, int64(1), row["consume_times"])
 		assert.Equal(t, 28.8, row["consume_total"])
+
+		_ = sb.AddFilters([]Filter{
+			{Val: "28", Op: Greater, Attr: "consume_total"},
+		}, AND)
+
+		q, a, err = sb.Rebind("list")
+
+		assert.Equal(t, "SELECT users.name AS name, users.age AS age, COUNT(orders.id) AS consume_times, "+
+			"SUM(orders.total_amount) AS consume_total FROM users LEFT JOIN orders ON orders.uid = users.uid "+
+			"WHERE users.name LIKE ? GROUP BY users.uid HAVING consume_total > ? LIMIT 0, 10", q)
 	})
 }
 
@@ -466,7 +476,7 @@ composition:
         expr: SUM(orders.total_amount)
   subject: 
     list: "SELECT %fields.base, %fields.statistic FROM users LEFT JOIN orders ON orders.uid = users.uid %where GROUP BY users.uid %order_by %limit"
-    total: "SELECT count(users.uid) FROM users LEFT JOIN order ON order.uid = users.uid %where GROUP BY users.uid"`
+    total: "SELECT count(users.uid) FROM users LEFT JOIN order ON order.uid = users.uid %where{!consume_total} %having{consume_total} GROUP BY users.uid"`
 
 	RunWithSchema(defaultSchema, t, func(db *sqlx.DB, t *testing.T) {
 		loadDefaultFixture(db, t)

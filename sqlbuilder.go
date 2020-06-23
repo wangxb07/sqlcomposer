@@ -209,6 +209,7 @@ func (sc *SqlBuilder) OrderBy(ob *OrderBy) *SqlBuilder {
 func (sc *SqlBuilder) compose(s string) (string, error) {
 	ctx := map[string]interface{}{
 		"where":    sc.Conditions,
+		"having":   sc.Conditions,
 		"limit":    sc.limit,
 		"order_by": sc.orderBy,
 	}

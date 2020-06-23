@@ -15,6 +15,13 @@ func Test_tokenReplace(t *testing.T) {
 		{Val: []interface{}{"1028", "2000"}, Op: Between, Attr: "lang"},
 	})
 
+	w3, _ := WhereAnd(&[]Filter{
+	})
+
+	w4, _ := WhereAnd(&[]Filter{
+		{Val: []interface{}{128, 200.1}, Op: Between, Attr: "height"},
+	})
+
 	type args struct {
 		s   string
 		ctx map[string]interface{}
@@ -83,6 +90,37 @@ func Test_tokenReplace(t *testing.T) {
 				},
 			},
 			wantRs: "SELECT * FROM tb WHERE height > :height_1 AND height < :height_2 AND lang > :lang_1 AND lang < :lang_2",
+		},
+		{
+			name: "test ParameterizedTokenReplacer with having",
+			args: args{
+				s: "SELECT *, count(id) as lang FROM tb %where{!lang} %having{lang}",
+				ctx: map[string]interface{}{
+					"where": w2,
+					"having": w2,
+				},
+			},
+			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height > :height_1 AND height < :height_2 HAVING lang > :lang_1 AND lang < :lang_2",
+		},{
+			name: "test ParameterizedTokenReplacer with having no condition",
+			args: args{
+				s: "SELECT *, count(id) as lang FROM tb %where{!lang} %having{lang}",
+				ctx: map[string]interface{}{
+					"where": w3,
+					"having": w3,
+				},
+			},
+			wantRs: "SELECT *, count(id) as lang FROM tb",
+		},{
+			name: "test ParameterizedTokenReplacer with having no lang condition",
+			args: args{
+				s: "SELECT *, count(id) as lang FROM tb %where{!lang} %having{lang}",
+				ctx: map[string]interface{}{
+					"where": w4,
+					"having": w4,
+				},
+			},
+			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height > :height_1 AND height < :height_2",
 		},
 	}
 	for _, tt := range tests {

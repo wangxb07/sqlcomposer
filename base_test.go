@@ -145,6 +145,13 @@ func TestCombine(t *testing.T) {
 		"fav":      []string{"pet", "movie"},
 	}, combined.Arg)
 
+	assert.Equal(t, map[string]string{
+		"name":     "name = :name",
+		"nickname": "nickname = :nickname",
+		"age":      "age = :age",
+		"fav":      "fav IN(:fav)",
+	}, combined.ClauseSlice)
+
 	f3 := &[]Filter{
 		{Val: []int{10, 15}, Op: Between, Attr: "age"},
 		{Val: nil, Op: IsNotNull, Attr: "class"},
@@ -162,6 +169,13 @@ func TestCombine(t *testing.T) {
 		"age_2":    int64(15),
 		"fav":      []string{"pet", "movie"},
 	}, combined.Arg)
+	assert.Equal(t, map[string]string{
+		"name":     "name = :name",
+		"nickname": "nickname = :nickname",
+		"age":      "age = :age AND age > :age_1 AND age < :age_2",
+		"class":    "class IS NOT NULL",
+		"fav":      "fav IN(:fav)",
+	}, combined.ClauseSlice)
 
 	// Empty combine
 	filterEmpty := &[]Filter{}
@@ -328,8 +342,8 @@ func TestBuildWhereAnd(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"height_1": int64(128),
 		"height_2": float64(200.1),
-		"lang_1": "1028",
-		"lang_2": "2000",
+		"lang_1":   "1028",
+		"lang_2":   "2000",
 	}, s9.Arg)
 	assert.Equal(t, "height > :height_1 AND height < :height_2", s9.ClauseSlice["height"])
 	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s9.ClauseSlice["lang"])
@@ -480,7 +494,7 @@ func Test_generateNewAttrName(t *testing.T) {
 func TestCollectTokenPlaceholder(t *testing.T) {
 	var (
 		tks [][]string
-		sc string
+		sc  string
 	)
 
 	sc = "SELECT * FROM tb %foo %where %limit"
@@ -508,7 +522,6 @@ func TestCollectTokenPlaceholder(t *testing.T) {
 	tks = CollectTokenPlaceholder(sc)
 	assert.Equal(t, "%where{!name,age}", tks[1][0])
 	assert.Equal(t, "{!name,age}", tks[1][2])
-
 
 	sc = "SELECT %fields.base FROM tb %where{*} %limit"
 	tks = CollectTokenPlaceholder(sc)

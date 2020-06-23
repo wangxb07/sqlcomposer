@@ -181,6 +181,7 @@ func CombineAnd(stmts ...ConditionStmt) (stmt ConditionStmt) {
 func Combine(op LogicOperator, stmts ...ConditionStmt) (stmt ConditionStmt) {
 	var clauses []string
 	stmt.Arg = map[string]interface{}{}
+	stmt.ClauseSlice = map[string]string{}
 
 	for _, s := range stmts {
 		if s.Clause != "" {
@@ -192,6 +193,14 @@ func Combine(op LogicOperator, stmts ...ConditionStmt) (stmt ConditionStmt) {
 
 				c = strings.Replace(c, ":"+k, ":"+nk, 1)
 				stmt.Arg[nk] = sa
+			}
+
+			for k, cs := range s.ClauseSlice {
+				if _, ok := stmt.ClauseSlice[k]; ok {
+					stmt.ClauseSlice[k] = fmt.Sprintf("%s %s %s", stmt.ClauseSlice[k], op, cs)
+				} else {
+					stmt.ClauseSlice[k] = cs
+				}
 			}
 
 			clauses = append(clauses, fmt.Sprintf("(%s)", c))
