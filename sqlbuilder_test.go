@@ -71,7 +71,7 @@ composition:
 			t.Fatal(err)
 		}
 
-		sb.RowConvert(&row)
+		//sb.RowConvert(&row)
 
 		assert.Equal(t, "Barry", row["name"])
 		assert.Equal(t, int64(24), row["age"])
@@ -517,7 +517,7 @@ composition:
 			t.Fatal(err)
 		}
 
-		sb.RowConvert(&row)
+		//sb.RowConvert(&row)
 
 		assert.Equal(t, "Scott", row["name"])
 		assert.Equal(t, int64(20), row["age"])

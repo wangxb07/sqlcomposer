@@ -204,6 +204,30 @@ func TestCombine(t *testing.T) {
 		"order_type":   "1",
 		"order_type_1": "2",
 	}, ra.Arg)
+	assert.Equal(t, map[string]string {
+		"order_type":   "order_type <> :order_type AND order_type = :order_type_1",
+	}, ra.ClauseSlice)
+
+	// repeated args key and between test
+	s7, _ := WhereAnd(&[]Filter{
+		{Val: []int{10, 15}, Op: Between, Attr: "age"},
+	})
+
+	s8, _ := WhereAnd(&[]Filter{
+		{Val: []int{15, 50}, Op: Between, Attr: "age"},
+	})
+
+	ra = CombineAnd(s7, s8)
+	assert.Equal(t, "(age > :age_1 AND age < :age_2) AND (age > :age_3 AND age < :age_4)", ra.Clause)
+	assert.Equal(t, map[string]interface{}{
+		"age_1": int64(10),
+		"age_2": int64(15),
+		"age_3": int64(15),
+		"age_4": int64(50),
+	}, ra.Arg)
+	assert.Equal(t, map[string]string {
+		"age":   "age > :age_1 AND age < :age_2 AND age > :age_3 AND age < :age_4",
+	}, ra.ClauseSlice)
 }
 
 func TestBuildWhereAnd(t *testing.T) {
@@ -489,6 +513,13 @@ func Test_generateNewAttrName(t *testing.T) {
 	args[newName] = "3"
 	newName = generateNewAttrName("order_type", args)
 	assert.Equal(t, "order_type_2", newName)
+
+	args[newName] = "4"
+	newName = generateNewAttrName("order_type", args)
+	assert.Equal(t, "order_type_3", newName)
+
+	newName = generateNewAttrName("order_type", args)
+	assert.Equal(t, "order_type_3", newName)
 }
 
 func TestCollectTokenPlaceholder(t *testing.T) {

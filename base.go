@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -147,18 +149,37 @@ func Conditions(f *[]Filter, op LogicOperator) (stmt ConditionStmt, err error) {
 }
 
 func generateNewAttrName(s string, args map[string]interface{}) string {
-	if _, ok := args[s]; ok {
-		i := 0
-		for k := range args {
-			if strings.HasPrefix(k, s) {
-				i ++
-			}
-		}
+	var (
+		i  int64
+		ns string
+	)
+	ns = s
+	ss := strings.Split(s, "_")
 
-		return generateNewAttrName(fmt.Sprintf("%s_%d", s, i), args)
+	if d, err := strconv.ParseInt(ss[len(ss)-1], 0, 64); err == nil {
+		ns = strings.Join(ss[0:len(ss)-1], "_")
+		i = d
+	} else {
+		i = 0
+	}
+
+	if _, ok := args[s]; ok {
+		i ++
+		return generateNewAttrName(fmt.Sprintf("%s_%d", ns, i), args)
 	}
 
 	return s
+}
+
+func numberSuffixMatch(s string) (prefix, suffix string) {
+	r := regexp.MustCompile(`(\w+_?)+_(\d)+$`)
+	ms := r.FindAllStringSubmatch(s, -1)
+
+	if len(ms) == 0 {
+		return "", ""
+	}
+
+	return ms[0][1], ms[0][2]
 }
 
 func WhereOr(f *[]Filter) (stmt ConditionStmt, err error) {
@@ -192,11 +213,24 @@ func Combine(op LogicOperator, stmts ...ConditionStmt) (stmt ConditionStmt) {
 				// replace to new placeholder
 
 				c = strings.Replace(c, ":"+k, ":"+nk, 1)
+
+				ps, _ := numberSuffixMatch(k)
+				if ps != "" {
+					if _, ok := s.ClauseSlice[ps]; ok {
+						s.ClauseSlice[ps] = strings.Replace(s.ClauseSlice[ps], ":"+k, ":"+nk, 1)
+					}
+				} else {
+					if _, ok := s.ClauseSlice[k]; ok {
+						s.ClauseSlice[k] = strings.Replace(s.ClauseSlice[k], ":"+k, ":"+nk, 1)
+					}
+				}
+
 				stmt.Arg[nk] = sa
 			}
 
 			for k, cs := range s.ClauseSlice {
 				if _, ok := stmt.ClauseSlice[k]; ok {
+					// replace new name
 					stmt.ClauseSlice[k] = fmt.Sprintf("%s %s %s", stmt.ClauseSlice[k], op, cs)
 				} else {
 					stmt.ClauseSlice[k] = cs
