@@ -22,6 +22,12 @@ func Test_tokenReplace(t *testing.T) {
 		{Val: []interface{}{128, 200.1}, Op: Between, Attr: "height"},
 	})
 
+	w5, _ := WhereAnd(&[]Filter{
+		{Val: []interface{}{128, 200.1}, Op: Between, Attr: "height"},
+		{Val: []interface{}{"1028", "2000"}, Op: Between, Attr: "lang"},
+		{Val: "wang", Op: Equal, Attr: "name"},
+	})
+
 	type args struct {
 		s   string
 		ctx map[string]interface{}
@@ -121,6 +127,16 @@ func Test_tokenReplace(t *testing.T) {
 				},
 			},
 			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height > :height_1 AND height < :height_2",
+		},{
+			name: "test ParameterizedTokenReplacer with two excluded",
+			args: args{
+				s: "SELECT *, count(id) as lang FROM tb %where{!lang,name} %having{lang,name}",
+				ctx: map[string]interface{}{
+					"where": w5,
+					"having": w5,
+				},
+			},
+			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height > :height_1 AND height < :height_2 HAVING lang > :lang_1 AND lang < :lang_2 AND name = :name",
 		},
 	}
 	for _, tt := range tests {

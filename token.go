@@ -78,10 +78,15 @@ func (fs ConditionStmt) TokenReplaceWithParams(params string, token string) stri
 			}
 		} else {
 			for k, cs := range fs.ClauseSlice {
+				in := false
 				for _, f := range fields {
 					if f == k {
-						continue
+						in = true
+						break
 					}
+				}
+
+				if !in {
 					clauses = append(clauses, cs)
 				}
 			}
