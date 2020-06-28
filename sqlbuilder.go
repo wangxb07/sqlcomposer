@@ -95,6 +95,7 @@ func NewSqlBuilder(db *sqlx.DB, yamlFile []byte) (*SqlBuilder, error) {
 		DB:         db,
 		Doc:        &doc,
 		Conditions: filterStmt,
+		orderBy:    new(OrderBy),
 		limit:      &SqlLimit{0, 10},
 		tokens:     make(map[string]interface{}),
 		pipelines:  make(map[string]ExpanderGenerator),
