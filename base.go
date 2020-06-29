@@ -110,7 +110,7 @@ func Conditions(f *[]Filter, op LogicOperator) (stmt ConditionStmt, err error) {
 			stmt.Arg[paramsAttr] = value.Val
 			break
 		case Between:
-			str.WriteString(fmt.Sprintf("%s > :%s AND %s < :%s",
+			str.WriteString(fmt.Sprintf("%s >= :%s AND %s <= :%s",
 				value.Attr, paramsAttr+"_1", value.Attr, paramsAttr+"_2"))
 
 			err = betweenParamsProcess(value.Val, paramsAttr, stmt.Arg)
@@ -120,7 +120,7 @@ func Conditions(f *[]Filter, op LogicOperator) (stmt ConditionStmt, err error) {
 
 			break
 		case NotBetween:
-			str.WriteString(fmt.Sprintf("%s < :%s AND %s > :%s",
+			str.WriteString(fmt.Sprintf("%s <= :%s AND %s >= :%s",
 				value.Attr, paramsAttr+"_1", value.Attr, paramsAttr+"_2"))
 
 			err = betweenParamsProcess(value.Val, paramsAttr, stmt.Arg)

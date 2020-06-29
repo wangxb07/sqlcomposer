@@ -65,7 +65,7 @@ func Test_tokenReplace(t *testing.T) {
 					},
 				},
 			},
-			wantRs: "SELECT * FROM tb WHERE lang > :lang_1 AND lang < :lang_2 LIMIT 0, 10",
+			wantRs: "SELECT * FROM tb WHERE lang >= :lang_1 AND lang <= :lang_2 LIMIT 0, 10",
 		},
 		{
 			name: "test ParameterizedTokenReplacer NORMAL",
@@ -75,7 +75,7 @@ func Test_tokenReplace(t *testing.T) {
 					"where": w2,
 				},
 			},
-			wantRs: "SELECT * FROM tb WHERE height > :height_1 AND height < :height_2",
+			wantRs: "SELECT * FROM tb WHERE height >= :height_1 AND height <= :height_2",
 		},
 		{
 			name: "test ParameterizedTokenReplacer ALL",
@@ -85,7 +85,7 @@ func Test_tokenReplace(t *testing.T) {
 					"where": w2,
 				},
 			},
-			wantRs: "SELECT * FROM tb WHERE height > :height_1 AND height < :height_2 AND lang > :lang_1 AND lang < :lang_2",
+			wantRs: "SELECT * FROM tb WHERE height >= :height_1 AND height <= :height_2 AND lang >= :lang_1 AND lang <= :lang_2",
 		},
 		{
 			name: "test ParameterizedTokenReplacer NORMAL ALL",
@@ -95,7 +95,7 @@ func Test_tokenReplace(t *testing.T) {
 					"where": w2,
 				},
 			},
-			wantRs: "SELECT * FROM tb WHERE height > :height_1 AND height < :height_2 AND lang > :lang_1 AND lang < :lang_2",
+			wantRs: "SELECT * FROM tb WHERE height >= :height_1 AND height <= :height_2 AND lang >= :lang_1 AND lang <= :lang_2",
 		},
 		{
 			name: "test ParameterizedTokenReplacer with having",
@@ -106,7 +106,7 @@ func Test_tokenReplace(t *testing.T) {
 					"having": w2,
 				},
 			},
-			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height > :height_1 AND height < :height_2 HAVING lang > :lang_1 AND lang < :lang_2",
+			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2 HAVING lang >= :lang_1 AND lang <= :lang_2",
 		},{
 			name: "test ParameterizedTokenReplacer with having no condition",
 			args: args{
@@ -126,7 +126,7 @@ func Test_tokenReplace(t *testing.T) {
 					"having": w4,
 				},
 			},
-			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height > :height_1 AND height < :height_2",
+			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2",
 		},{
 			name: "test ParameterizedTokenReplacer with two excluded",
 			args: args{
@@ -136,7 +136,7 @@ func Test_tokenReplace(t *testing.T) {
 					"having": w5,
 				},
 			},
-			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height > :height_1 AND height < :height_2 HAVING lang > :lang_1 AND lang < :lang_2 AND name = :name",
+			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2 HAVING lang >= :lang_1 AND lang <= :lang_2 AND name = :name",
 		},
 	}
 	for _, tt := range tests {

@@ -160,7 +160,7 @@ func TestCombine(t *testing.T) {
 	s3, _ := WhereAnd(f3)
 
 	combined = CombineAnd(combined, s3)
-	assert.Equal(t, "((name = :name) OR (nickname = :nickname AND age = :age AND fav IN(:fav))) AND (age > :age_1 AND age < :age_2 AND class IS NOT NULL)", combined.Clause)
+	assert.Equal(t, "((name = :name) OR (nickname = :nickname AND age = :age AND fav IN(:fav))) AND (age >= :age_1 AND age <= :age_2 AND class IS NOT NULL)", combined.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"nickname": "barry",
 		"name":     "wang",
@@ -172,7 +172,7 @@ func TestCombine(t *testing.T) {
 	assert.Equal(t, map[string]string{
 		"name":     "name = :name",
 		"nickname": "nickname = :nickname",
-		"age":      "age = :age AND age > :age_1 AND age < :age_2",
+		"age":      "age = :age AND age >= :age_1 AND age <= :age_2",
 		"class":    "class IS NOT NULL",
 		"fav":      "fav IN(:fav)",
 	}, combined.ClauseSlice)
@@ -183,7 +183,7 @@ func TestCombine(t *testing.T) {
 	s4, _ := WhereOr(filterEmpty)
 
 	emptyCombined := CombineAnd(s3, s4)
-	assert.Equal(t, "(age > :age_1 AND age < :age_2 AND class IS NOT NULL)", emptyCombined.Clause)
+	assert.Equal(t, "(age >= :age_1 AND age <= :age_2 AND class IS NOT NULL)", emptyCombined.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"age_1": int64(10),
 		"age_2": int64(15),
@@ -218,7 +218,7 @@ func TestCombine(t *testing.T) {
 	})
 
 	ra = CombineAnd(s7, s8)
-	assert.Equal(t, "(age > :age_1 AND age < :age_2) AND (age > :age_3 AND age < :age_4)", ra.Clause)
+	assert.Equal(t, "(age >= :age_1 AND age <= :age_2) AND (age >= :age_3 AND age <= :age_4)", ra.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"age_1": int64(10),
 		"age_2": int64(15),
@@ -226,7 +226,7 @@ func TestCombine(t *testing.T) {
 		"age_4": int64(50),
 	}, ra.Arg)
 	assert.Equal(t, map[string]string {
-		"age":   "age > :age_1 AND age < :age_2 AND age > :age_3 AND age < :age_4",
+		"age":   "age >= :age_1 AND age <= :age_2 AND age >= :age_3 AND age <= :age_4",
 	}, ra.ClauseSlice)
 }
 
@@ -270,7 +270,7 @@ func TestBuildWhereAnd(t *testing.T) {
 	}
 
 	s3, _ := WhereAnd(f3)
-	assert.Equal(t, "name = :name AND age > :age_1 AND age < :age_2 AND class IS NOT NULL", s3.Clause)
+	assert.Equal(t, "name = :name AND age >= :age_1 AND age <= :age_2 AND class IS NOT NULL", s3.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"name":  "wang",
 		"age_1": int64(10),
@@ -322,7 +322,7 @@ func TestBuildWhereAnd(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 	}
-	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s6.Clause)
+	assert.Equal(t, "lang >= :lang_1 AND lang <= :lang_2", s6.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"lang_1": "2020-06-01",
 		"lang_2": "2020-06-20",
@@ -335,7 +335,7 @@ func TestBuildWhereAnd(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 	}
-	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s7.Clause)
+	assert.Equal(t, "lang >= :lang_1 AND lang <= :lang_2", s7.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"lang_1": int64(128),
 		"lang_2": int64(200),
@@ -348,7 +348,7 @@ func TestBuildWhereAnd(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 	}
-	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s8.Clause)
+	assert.Equal(t, "lang >= :lang_1 AND lang <= :lang_2", s8.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"lang_1": float64(128.0),
 		"lang_2": float64(200.1),
@@ -362,15 +362,15 @@ func TestBuildWhereAnd(t *testing.T) {
 	if err != nil {
 		t.Log(err)
 	}
-	assert.Equal(t, "height > :height_1 AND height < :height_2 AND lang > :lang_1 AND lang < :lang_2", s9.Clause)
+	assert.Equal(t, "height >= :height_1 AND height <= :height_2 AND lang >= :lang_1 AND lang <= :lang_2", s9.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"height_1": int64(128),
 		"height_2": float64(200.1),
 		"lang_1":   "1028",
 		"lang_2":   "2000",
 	}, s9.Arg)
-	assert.Equal(t, "height > :height_1 AND height < :height_2", s9.ClauseSlice["height"])
-	assert.Equal(t, "lang > :lang_1 AND lang < :lang_2", s9.ClauseSlice["lang"])
+	assert.Equal(t, "height >= :height_1 AND height <= :height_2", s9.ClauseSlice["height"])
+	assert.Equal(t, "lang >= :lang_1 AND lang <= :lang_2", s9.ClauseSlice["lang"])
 }
 
 func TestBuildWhereOr(t *testing.T) {
@@ -412,7 +412,7 @@ func TestBuildWhereOr(t *testing.T) {
 	}
 
 	s3, _ := WhereOr(f3)
-	assert.Equal(t, "name = :name OR age > :age_1 AND age < :age_2 OR class IS NOT NULL", s3.Clause)
+	assert.Equal(t, "name = :name OR age >= :age_1 AND age <= :age_2 OR class IS NOT NULL", s3.Clause)
 	assert.Equal(t, map[string]interface{}{
 		"name":  "wang",
 		"age_1": int64(10),
