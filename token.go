@@ -162,35 +162,39 @@ func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
 	}
 
 	rs = s
-	for _, placeholder := range tps {
-		if tr, ok := ctx[placeholder[1]]; ok {
-			// tr is string
-			if rt := reflect.TypeOf(tr); rt.Kind() == reflect.String {
-				rs = strings.Replace(rs, placeholder[0], tr.(string), 1)
-			} else {
-				// index 2 indicate the token params
-				if len(placeholder) == 4 && len(placeholder[2]) == 0 {
-					replacer, ok := tr.(TokenReplacer)
+	for ; len(tps) > 0; tps = CollectTokenPlaceholder(rs) {
 
-					if !ok {
-						return rs, fmt.Errorf("placeholder %s in context must implemented TokenReplacer", placeholder[0])
-					}
-
-					rs = strings.Replace(rs, placeholder[0], replacer.TokenReplace(ctx), 1)
+		for _, placeholder := range tps {
+			if tr, ok := ctx[placeholder[1]]; ok {
+				// tr is string
+				if rt := reflect.TypeOf(tr); rt.Kind() == reflect.String {
+					rs = strings.Replace(rs, placeholder[0], tr.(string), 1)
 				} else {
-					replacer, ok := tr.(ParameterizedTokenReplacer)
+					// index 2 indicate the token params
+					if len(placeholder) == 4 && len(placeholder[2]) == 0 {
+						replacer, ok := tr.(TokenReplacer)
 
-					if !ok {
-						return rs, fmt.Errorf("placeholder %s in context must implemented ParameterizedTokenReplacer", placeholder[0])
+						if !ok {
+							return rs, fmt.Errorf("placeholder %s in context must implemented TokenReplacer", placeholder[0])
+						}
+
+						rs = strings.Replace(rs, placeholder[0], replacer.TokenReplace(ctx), 1)
+					} else {
+						replacer, ok := tr.(ParameterizedTokenReplacer)
+
+						if !ok {
+							return rs, fmt.Errorf("placeholder %s in context must implemented ParameterizedTokenReplacer", placeholder[0])
+						}
+
+						params := placeholder[2][1 : len(placeholder[2])-1]
+						rs = strings.Replace(rs, placeholder[0], replacer.TokenReplaceWithParams(params, placeholder[1]), 1)
 					}
-
-					params := placeholder[2][1 : len(placeholder[2])-1]
-					rs = strings.Replace(rs, placeholder[0], replacer.TokenReplaceWithParams(params, placeholder[1]), 1)
 				}
+			} else {
+				return rs, fmt.Errorf("placeholder %s not definition in context", placeholder[1])
 			}
-		} else {
-			return rs, fmt.Errorf("placeholder %s not definition in context", placeholder[1])
 		}
+
 	}
 
 	return replaceSpaceString(rs), err

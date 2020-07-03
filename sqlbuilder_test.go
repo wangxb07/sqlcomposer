@@ -107,6 +107,18 @@ func (atr attrsFieldsTokenReplacer) TokenReplace(ctx map[string]interface{}) str
 	return "prod_material.attr_value AS product_material,prod_weight.attr_value AS product_weight"
 }
 
+type reuseFieldsTokenReplacer struct {
+	Attrs map[string]string
+}
+
+func (atr *reuseFieldsTokenReplacer) TokenReplaceWithParams(params string, token string) string {
+	elem, ok := atr.Attrs[params]
+	if ok {
+		return elem
+	}
+	return ""
+}
+
 func TestSqlBuilder_RegisterToken(t *testing.T) {
 	var sqlWithToken = `
 info:
@@ -126,6 +138,14 @@ composition:
           value: product_weight
         - name: prod-material
           value: product_material
+	reuse:
+      params:
+        - name: prod-weight
+          value: product_weight
+        - name: prod-material
+          value: product_material
+		- name: test
+          value: users.name
   fields:
     base:
       - name: name
@@ -174,7 +194,7 @@ composition:
 			i++
 		}
 		sort.Strings(keys)
-		assert.Equal(t, []string{"attrs", "attrs_fields"}, keys)
+		assert.Equal(t, []string{"attrs", "attrs_fields", "reuse"}, keys)
 
 		if err != nil {
 			t.Fatal(err)
@@ -215,6 +235,16 @@ composition:
 			}
 		})
 
+		sb.RegisterToken2("reuse", func(params []TokenParam) ParameterizedTokenReplacer {
+			attrs := map[string]string{}
+			for _, p := range params {
+				attrs[p.Name] = p.Value
+			}
+			return &reuseFieldsTokenReplacer{
+				Attrs: attrs,
+			}
+		})
+
 		q, _, err = sb.Rebind("list")
 
 		if err != nil {
@@ -245,7 +275,6 @@ composition:
 			"ON prod_weight.attr_sid = 'af37d15ade63f26ee566fcd9692c63d4' AND prod_weight.obj_sid = fty_product.sid "+
 			"WHERE (users.name LIKE ?) GROUP BY users.uid", q)
 
-
 		// register token but not in compose
 		sb, err = NewSqlBuilder(db, []byte(sqlNotWithToken))
 
@@ -268,6 +297,16 @@ composition:
 			}
 
 			return &attrsFieldsTokenReplacer{
+				Attrs: attrs,
+			}
+		})
+
+		sb.RegisterToken2("reuse", func(params []TokenParam) ParameterizedTokenReplacer {
+			attrs := map[string]string{}
+			for _, p := range params {
+				attrs[p.Name] = p.Value
+			}
+			return &reuseFieldsTokenReplacer{
 				Attrs: attrs,
 			}
 		})
