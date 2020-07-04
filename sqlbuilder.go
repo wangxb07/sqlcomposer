@@ -108,6 +108,12 @@ func (sc *SqlBuilder) RegisterToken(name string, gen func(params []TokenParam) T
 	}
 }
 
+func (sc *SqlBuilder) ParameterizedRegisterToken(name string, gen func(params []TokenParam) ParameterizedTokenReplacer) {
+	if td, ok := sc.Doc.Composition.Tokens[name]; ok {
+		sc.tokens[name] = gen(td.Params)
+	}
+}
+
 func (sc *SqlBuilder) RegisterPipelineType(t string) error {
 	if _, ok := sc.pipelines[t]; !ok {
 		sc.pipelines[t] = GenerateExpander(t)

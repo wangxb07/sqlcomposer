@@ -193,7 +193,7 @@ func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
 		}
 	}
 
-	return replaceSpaceString(rs), err
+	return tokenReplace(rs, ctx)
 }
 
 func replaceSpaceString(s string) string {
