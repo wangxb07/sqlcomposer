@@ -63,6 +63,10 @@ composition:
 
 		rows, err := db.Queryx(q, a...)
 
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		assert.Equal(t, true, rows.Next())
 		row := make(map[string]interface{})
 		err = rows.MapScan(row)
@@ -482,10 +486,6 @@ composition:
 		loadDefaultFixture(db, t)
 
 		sb, err := NewSqlBuilder(db, []byte(sqlComposition))
-
-		if err != nil {
-			t.Fatal(err)
-		}
 
 		if err != nil {
 			t.Fatal(err)

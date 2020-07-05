@@ -2,7 +2,6 @@ package sqlcomposer
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -96,12 +95,11 @@ drop table orders;
 }
 
 func init() {
-	sqdsn := os.Getenv("SQLITE_DSN")
-
-	if sqdsn == "" {
-		sqdsn = ":memory:"
+	var err error
+	db, err = sqlx.Connect("sqlite3", ":memory:")
+	if err != nil {
+		fmt.Printf("Disabling SQLite:\n    %v", err)
 	}
-	db = sqlx.MustConnect("sqlite3", sqdsn)
 }
 
 func loadDefaultFixture(db *sqlx.DB, t *testing.T) {
