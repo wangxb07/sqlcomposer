@@ -208,7 +208,7 @@ func (sc *SqlBuilder) OrderBy(ob *OrderBy) *SqlBuilder {
 }
 
 func (sc *SqlBuilder) compose(s string) (string, error) {
-	ctx := map[string]interface{}{
+	tks := map[string]interface{}{
 		"where":    sc.Conditions,
 		"having":   sc.Conditions,
 		"limit":    sc.limit,
@@ -217,14 +217,14 @@ func (sc *SqlBuilder) compose(s string) (string, error) {
 
 	// fields context process
 	for k, g := range sc.Doc.Composition.Fields {
-		ctx["fields."+k] = g
+		tks["fields."+k] = g
 	}
 
 	for k, v := range sc.tokens {
-		ctx[k] = v
+		tks[k] = v
 	}
 
-	return tokenReplace(s, ctx)
+	return tokenReplace(s, tks)
 }
 
 // Build query statement

@@ -137,6 +137,19 @@ func Test_tokenReplace(t *testing.T) {
 				},
 			},
 			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2 HAVING lang >= :lang_1 AND lang <= :lang_2 AND name = :name",
+		},{
+			name: "test token value include token",
+			args: args{
+				s: "SELECT %fields FROM tb %where{!lang,name} %having{lang,name}",
+				ctx: map[string]interface{}{
+					"where": w5,
+					"having": w5,
+					"fields": "name, %other_fields",
+					"other_fields": "age, sex, %counts",
+					"counts": "count(id) as lang",
+				},
+			},
+			wantRs: "SELECT name, age, sex, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2 HAVING lang >= :lang_1 AND lang <= :lang_2 AND name = :name",
 		},
 	}
 	for _, tt := range tests {

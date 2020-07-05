@@ -152,7 +152,7 @@ func (group SqlCompositionFieldGroup) TokenReplace(ctx map[string]interface{}) s
 //
 // Token replace
 //
-func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
+func tokenReplace(s string, tks map[string]interface{}) (rs string, err error) {
 	// collect all token placeholders on the string
 	tps := CollectTokenPlaceholder(s)
 
@@ -163,7 +163,7 @@ func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
 
 	rs = s
 	for _, placeholder := range tps {
-		if tr, ok := ctx[placeholder[1]]; ok {
+		if tr, ok := tks[placeholder[1]]; ok {
 			// tr is string
 			if rt := reflect.TypeOf(tr); rt.Kind() == reflect.String {
 				rs = strings.Replace(rs, placeholder[0], tr.(string), 1)
@@ -176,7 +176,7 @@ func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
 						return rs, fmt.Errorf("placeholder %s in context must implemented TokenReplacer", placeholder[0])
 					}
 
-					rs = strings.Replace(rs, placeholder[0], replacer.TokenReplace(ctx), 1)
+					rs = strings.Replace(rs, placeholder[0], replacer.TokenReplace(tks), 1)
 				} else {
 					replacer, ok := tr.(ParameterizedTokenReplacer)
 
@@ -193,7 +193,7 @@ func tokenReplace(s string, ctx map[string]interface{}) (rs string, err error) {
 		}
 	}
 
-	return replaceSpaceString(rs), err
+	return tokenReplace(replaceSpaceString(rs), tks)
 }
 
 func replaceSpaceString(s string) string {
