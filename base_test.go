@@ -520,6 +520,17 @@ func Test_generateNewAttrName(t *testing.T) {
 
 	newName = generateNewAttrName("order_type", args)
 	assert.Equal(t, "order_type_3", newName)
+
+	args = map[string]interface{}{
+		"age_1": "1",
+		"age_2": "2",
+	}
+
+	newName = generateNewAttrName("age_1", args)
+	assert.Equal(t, "age_3", newName)
+	args[newName] = "3"
+	newName = generateNewAttrName("age_2", args)
+	assert.Equal(t, "age_4", newName)
 }
 
 func TestCollectTokenPlaceholder(t *testing.T) {

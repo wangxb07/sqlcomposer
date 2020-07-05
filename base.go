@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -208,7 +209,14 @@ func Combine(op LogicOperator, stmts ...ConditionStmt) (stmt ConditionStmt) {
 		if s.Clause != "" {
 			c := s.Clause
 
-			for k, sa := range s.Arg {
+			keys := make([]string, 0, len(s.Arg))
+
+			for k := range s.Arg {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+
+			for _, k := range keys {
 				nk := generateNewAttrName(k, stmt.Arg)
 				// replace to new placeholder
 
@@ -225,7 +233,7 @@ func Combine(op LogicOperator, stmts ...ConditionStmt) (stmt ConditionStmt) {
 					}
 				}
 
-				stmt.Arg[nk] = sa
+				stmt.Arg[nk] = s.Arg[k]
 			}
 
 			for k, cs := range s.ClauseSlice {
