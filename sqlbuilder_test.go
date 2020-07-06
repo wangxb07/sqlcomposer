@@ -111,6 +111,17 @@ func (atr attrsFieldsTokenReplacer) TokenReplace(ctx map[string]interface{}) str
 	return "prod_material.attr_value AS product_material,prod_weight.attr_value AS product_weight"
 }
 
+type mockReuseTokenReplacer struct {
+	KeyVal map[string]string
+}
+
+func (m mockReuseTokenReplacer) TokenReplaceWithParams(params string, token string) string {
+	if v, ok := m.KeyVal[params]; ok {
+		return v
+	}
+	return ""
+}
+
 func TestSqlBuilder_RegisterToken(t *testing.T) {
 	var sqlWithToken = `
 info:
@@ -130,6 +141,10 @@ composition:
           value: product_weight
         - name: prod-material
           value: product_material
+    reuse:
+      params:
+        - name: foo
+          value: "LEFT JOIN orders ON orders.uid = users.uid LEFT JOIN fty_product ON orders.product_sid = fty_product.sid"
   fields:
     base:
       - name: name
@@ -142,8 +157,8 @@ composition:
       - name: consume_total
         expr: SUM(orders.total_amount)
   subject: 
-    list: "SELECT %fields.base, %fields.statistic, %attrs_fields FROM users LEFT JOIN orders ON orders.uid = users.uid LEFT JOIN fty_product ON orders.product_sid = fty_product.sid %attrs %where GROUP BY users.uid %limit"
-    total: "SELECT count(users.uid) FROM users LEFT JOIN orders ON orders.uid = users.uid LEFT JOIN fty_product ON orders.product_sid = fty_product.sid %attrs %where GROUP BY users.uid"`
+    list: "SELECT %fields.base, %fields.statistic, %attrs_fields FROM users %reuse{foo} %attrs %where GROUP BY users.uid %limit"
+    total: "SELECT count(users.uid) FROM users %reuse{foo} %attrs %where GROUP BY users.uid"`
 
 	var sqlNotWithToken = `
 info:
@@ -178,7 +193,7 @@ composition:
 			i++
 		}
 		sort.Strings(keys)
-		assert.Equal(t, []string{"attrs", "attrs_fields"}, keys)
+		assert.Equal(t, []string{"attrs", "attrs_fields", "reuse"}, keys)
 
 		if err != nil {
 			t.Fatal(err)
@@ -196,7 +211,7 @@ composition:
 
 		assert.Error(t, err)
 
-		sb.RegisterToken("attrs", func(params []TokenParam) TokenReplacer {
+		sb.InjectionSimpleToken("attrs", func(params []TokenParam) TokenReplacer {
 			attrs := map[string]string{}
 			for _, p := range params {
 				attrs[p.Name] = p.Value
@@ -208,7 +223,7 @@ composition:
 			}
 		})
 
-		sb.RegisterToken("attrs_fields", func(params []TokenParam) TokenReplacer {
+		sb.InjectionSimpleToken("attrs_fields", func(params []TokenParam) TokenReplacer {
 			attrs := map[string]string{}
 			for _, p := range params {
 				attrs[p.Name] = p.Value
@@ -216,6 +231,18 @@ composition:
 
 			return &attrsFieldsTokenReplacer{
 				Attrs: attrs,
+			}
+		})
+
+		sb.InjectionParameterizedToken("reuse", func(params []TokenParam) ParameterizedTokenReplacer {
+			kv := make(map[string]string)
+
+			for _, p := range params {
+				kv[p.Name] = p.Value
+			}
+
+			return &mockReuseTokenReplacer{
+				KeyVal: kv,
 			}
 		})
 
@@ -253,7 +280,7 @@ composition:
 		// register token but not in compose
 		sb, err = NewSqlBuilder(db, []byte(sqlNotWithToken))
 
-		sb.RegisterToken("attrs", func(params []TokenParam) TokenReplacer {
+		sb.InjectionSimpleToken("attrs", func(params []TokenParam) TokenReplacer {
 			attrs := map[string]string{}
 			for _, p := range params {
 				attrs[p.Name] = p.Value
@@ -265,7 +292,7 @@ composition:
 			}
 		})
 
-		sb.RegisterToken("attrs_fields", func(params []TokenParam) TokenReplacer {
+		sb.InjectionSimpleToken("attrs_fields", func(params []TokenParam) TokenReplacer {
 			attrs := map[string]string{}
 			for _, p := range params {
 				attrs[p.Name] = p.Value

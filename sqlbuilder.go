@@ -102,7 +102,20 @@ func NewSqlBuilder(db *sqlx.DB, yamlFile []byte) (*SqlBuilder, error) {
 	}, nil
 }
 
+// Deprecated
 func (sc *SqlBuilder) RegisterToken(name string, gen func(params []TokenParam) TokenReplacer) {
+	if td, ok := sc.Doc.Composition.Tokens[name]; ok {
+		sc.tokens[name] = gen(td.Params)
+	}
+}
+
+func (sc *SqlBuilder) InjectionParameterizedToken(name string, gen func(params []TokenParam) ParameterizedTokenReplacer) {
+	if td, ok := sc.Doc.Composition.Tokens[name]; ok {
+		sc.tokens[name] = gen(td.Params)
+	}
+}
+
+func (sc *SqlBuilder) InjectionSimpleToken(name string, gen func(params []TokenParam) TokenReplacer) {
 	if td, ok := sc.Doc.Composition.Tokens[name]; ok {
 		sc.tokens[name] = gen(td.Params)
 	}

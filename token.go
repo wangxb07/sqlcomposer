@@ -189,7 +189,7 @@ func tokenReplace(s string, tks map[string]interface{}) (rs string, err error) {
 				}
 			}
 		} else {
-			return rs, fmt.Errorf("placeholder %s not definition in context", placeholder[1])
+			return rs, fmt.Errorf("placeholder [%s] not definition in context", placeholder[1])
 		}
 	}
 
