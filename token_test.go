@@ -2,6 +2,7 @@ package sqlcomposer
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -15,8 +16,7 @@ func Test_tokenReplace(t *testing.T) {
 		{Val: []interface{}{"1028", "2000"}, Op: Between, Attr: "lang"},
 	})
 
-	w3, _ := WhereAnd(&[]Filter{
-	})
+	w3, _ := WhereAnd(&[]Filter{})
 
 	w4, _ := WhereAnd(&[]Filter{
 		{Val: []interface{}{128, 200.1}, Op: Between, Attr: "height"},
@@ -102,37 +102,37 @@ func Test_tokenReplace(t *testing.T) {
 			args: args{
 				s: "SELECT *, count(id) as lang FROM tb %where{!lang} %having{lang}",
 				ctx: map[string]interface{}{
-					"where": w2,
+					"where":  w2,
 					"having": w2,
 				},
 			},
 			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2 HAVING lang >= :lang_1 AND lang <= :lang_2",
-		},{
+		}, {
 			name: "test ParameterizedTokenReplacer with having no condition",
 			args: args{
 				s: "SELECT *, count(id) as lang FROM tb %where{!lang} %having{lang}",
 				ctx: map[string]interface{}{
-					"where": w3,
+					"where":  w3,
 					"having": w3,
 				},
 			},
 			wantRs: "SELECT *, count(id) as lang FROM tb",
-		},{
+		}, {
 			name: "test ParameterizedTokenReplacer with having no lang condition",
 			args: args{
 				s: "SELECT *, count(id) as lang FROM tb %where{!lang} %having{lang}",
 				ctx: map[string]interface{}{
-					"where": w4,
+					"where":  w4,
 					"having": w4,
 				},
 			},
 			wantRs: "SELECT *, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2",
-		},{
+		}, {
 			name: "test ParameterizedTokenReplacer with two excluded",
 			args: args{
 				s: "SELECT *, count(id) as lang FROM tb %where{!lang,name} %having{lang,name}",
 				ctx: map[string]interface{}{
-					"where": w5,
+					"where":  w5,
 					"having": w5,
 				},
 			},
@@ -142,6 +142,7 @@ func Test_tokenReplace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotRs, err := tokenReplace(tt.args.s, tt.args.ctx)
+			gotRs = strings.TrimSpace(gotRs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("tokenReplace() error = %v, wantErr %v", err, tt.wantErr)
 				return
