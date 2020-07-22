@@ -81,7 +81,7 @@ func removeCondition(s string, c string) (res string) {
 	emptyRep := regexp.MustCompile(`\(\)`)
 	hasEmpty := emptyRep.FindAllString(res, -1)
 
-	if c != "()" && len(hasEmpty) > 0 {
+	if len(hasEmpty) > 0 {
 		return removeCondition(res, "()")
 	}
 

@@ -28,6 +28,12 @@ func Test_tokenReplace(t *testing.T) {
 		{Val: "wang", Op: Equal, Attr: "name"},
 	})
 
+	w6, _ := WhereAnd(&[]Filter{
+		{Val: []interface{}{128, 200.1}, Op: Between, Attr: "height"},
+		{Val: []interface{}{"1028", "2000"}, Op: Between, Attr: "lang"},
+		{Val: []interface{}{"wang", "lou"}, Op: In, Attr: "name"},
+	})
+
 	type args struct {
 		s   string
 		ctx map[string]interface{}
@@ -150,6 +156,19 @@ func Test_tokenReplace(t *testing.T) {
 				},
 			},
 			wantRs: "SELECT name, age, sex, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2 HAVING lang >= :lang_1 AND lang <= :lang_2 AND name = :name",
+		}, {
+			name: "test token value include token and with in operation",
+			args: args{
+				s: "SELECT %fields FROM tb %where{!lang,name} %having{lang,name}",
+				ctx: map[string]interface{}{
+					"where": w6,
+					"having": w6,
+					"fields": "name, %other_fields",
+					"other_fields": "age, sex, %counts",
+					"counts": "count(id) as lang",
+				},
+			},
+			wantRs: "SELECT name, age, sex, count(id) as lang FROM tb WHERE height >= :height_1 AND height <= :height_2 HAVING lang >= :lang_1 AND lang <= :lang_2 AND name IN(:name)",
 		},
 	}
 	for _, tt := range tests {
@@ -188,6 +207,42 @@ func Test_processConditionsParameters(t *testing.T) {
 			}
 			if !reflect.DeepEqual(gotFields, tt.wantFields) {
 				t.Errorf("processConditionsParameters() gotFields = %v, want %v", gotFields, tt.wantFields)
+			}
+		})
+	}
+}
+
+func Test_removeCondition(t *testing.T) {
+	type args struct {
+		s string
+		c string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantRes string
+	}{
+		{
+			name: "normal one",
+			args: args{
+				"((product_spec LIKE :product_spec OR product_unit_weight LIKE :product_unit_weight OR product_material LIKE :product_material OR product_hardness LIKE :product_hardness OR product_perform_level LIKE :product_perform_level OR product_surface_treat LIKE :product_surface_treat)) AND ((combine_cust_material_no LIKE :combine_cust_material_no))",
+				"combine_cust_material_no LIKE :combine_cust_material_no",
+			},
+			wantRes: "((product_spec LIKE :product_spec OR product_unit_weight LIKE :product_unit_weight OR product_material LIKE :product_material OR product_hardness LIKE :product_hardness OR product_perform_level LIKE :product_perform_level OR product_surface_treat LIKE :product_surface_treat))",
+		},
+		{
+			name: "normal two",
+			args: args{
+				"(((product_surface_treat LIKE :product_surface_treat))) AND ((combine_cust_material_no LIKE :combine_cust_material_no))",
+				"product_surface_treat LIKE :product_surface_treat",
+			},
+			wantRes: "((combine_cust_material_no LIKE :combine_cust_material_no))",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotRes := removeCondition(tt.args.s, tt.args.c); gotRes != tt.wantRes {
+				t.Errorf("removeCondition() = %v, want %v", gotRes, tt.wantRes)
 			}
 		})
 	}
