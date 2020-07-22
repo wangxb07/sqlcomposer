@@ -60,6 +60,34 @@ func (fs ConditionStmt) TokenReplace(ctx map[string]interface{}) string {
 	return ""
 }
 
+func removeCondition(s string, c string) (res string) {
+	rc := strings.ReplaceAll(strings.ReplaceAll(c, "(", "\\("), ")", "\\)")
+
+	l := regexp.MustCompile(fmt.Sprintf(`\s+(AND|OR)?\s+(\(%s\)|%s)`, rc, rc))
+	r := regexp.MustCompile(fmt.Sprintf(`(\(%s\)|%s)\s+(AND|OR)?\s+`, rc, rc))
+
+	replaced := l.ReplaceAllString(s, "")
+
+	if replaced == s {
+		replaced = r.ReplaceAllString(s, "")
+	}
+
+	if replaced != s {
+		res = replaced
+	} else {
+		res = strings.ReplaceAll(s, c, "")
+	}
+
+	emptyRep := regexp.MustCompile(`\(\)`)
+	hasEmpty := emptyRep.FindAllString(res, -1)
+
+	if c != "()" && len(hasEmpty) > 0 {
+		return removeCondition(res, "()")
+	}
+
+	return res
+}
+
 // Implement token replacer
 func (fs ConditionStmt) TokenReplaceWithParams(params string, token string) string {
 	if !fs.IsEmpty() {
@@ -69,25 +97,34 @@ func (fs ConditionStmt) TokenReplaceWithParams(params string, token string) stri
 			return fmt.Sprintf("WHERE %s", fs.Clause)
 		}
 
-		clauses := make([]string, 0)
-		if include {
+		clauses := fs.Clause
+
+		excluded := make([]string, 0)
+
+		for k, _ := range fs.ClauseSlice {
+			in := false
 			for _, f := range fields {
+				if f == k {
+					in = true
+					break
+				}
+			}
+
+			if !in {
+				excluded = append(excluded, k)
+			}
+		}
+
+		if include {
+			for _, f := range excluded {
 				if cs, ok := fs.ClauseSlice[f]; ok {
-					clauses = append(clauses, cs)
+					clauses = removeCondition(clauses, cs)
 				}
 			}
 		} else {
-			for k, cs := range fs.ClauseSlice {
-				in := false
-				for _, f := range fields {
-					if f == k {
-						in = true
-						break
-					}
-				}
-
-				if !in {
-					clauses = append(clauses, cs)
+			for _, f := range fields {
+				if cs, ok := fs.ClauseSlice[f]; ok {
+					clauses = removeCondition(clauses, cs)
 				}
 			}
 		}
@@ -97,11 +134,11 @@ func (fs ConditionStmt) TokenReplaceWithParams(params string, token string) stri
 		}
 
 		if token == "where" {
-			return fmt.Sprintf("WHERE %s", strings.Join(clauses, " AND "))
+			return fmt.Sprintf("WHERE %s", clauses)
 		}
 
 		if token == "having" {
-			return fmt.Sprintf("HAVING %s", strings.Join(clauses, " AND "))
+			return fmt.Sprintf("HAVING %s", clauses)
 		}
 	}
 

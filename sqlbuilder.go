@@ -195,10 +195,6 @@ func (sc *SqlBuilder) applyPipelines(filters []Filter, operator LogicOperator) (
 					return stmt, fmt.Errorf("%s attr expend failure", attr)
 				}
 
-				if err != nil {
-					return stmt, err
-				}
-
 				stmt = CombineAnd(subStmt, stmt)
 			} else {
 				return stmt, fmt.Errorf("%s pipline type not registered", p.Type)
